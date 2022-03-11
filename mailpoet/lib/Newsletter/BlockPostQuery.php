@@ -34,11 +34,20 @@ class BlockPostQuery {
   public $newerThanTimestamp = false;
 
   /**
+   * If it's a dynamic block
+   * Dynamic blocks are now allowed to query none-public posts
+   *
+   * @var bool
+   */
+  public $dynamic = true;
+
+  /**
    * @param array $query = [
    *    args,
    *    postsToExclude,
    *    newsletterId,
    *    newerThanTimestamp,
+   *    dynamic,
    *    terms,
    *    inclusionType
    * ]
@@ -72,6 +81,9 @@ class BlockPostQuery {
    * @return string
    */
   public function getPostStatus(): string {
+    if ($this->dynamic) {
+      return 'publish';
+    }
     return (isset($this->args['postStatus'])) ? $this->args['postStatus'] : 'publish';
   }
 

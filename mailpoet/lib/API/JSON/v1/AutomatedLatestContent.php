@@ -88,7 +88,7 @@ class AutomatedLatestContent extends APIEndpoint {
 
   public function getPosts($data = []) {
     return $this->successResponse(
-      $this->getPermittedPosts($this->ALC->getPosts(new BlockPostQuery(['args' => $data])))
+      $this->getPermittedPosts($this->ALC->getPosts(new BlockPostQuery(['args' => $data, 'dynamic' => false])))
     );
   }
 
@@ -104,7 +104,7 @@ class AutomatedLatestContent extends APIEndpoint {
     $renderedPosts = [];
 
     foreach ($data['blocks'] as $block) {
-      $query = new BlockPostQuery(['args' => $block, 'postsToExclude' => $usedPosts]);
+      $query = new BlockPostQuery(['args' => $block, 'postsToExclude' => $usedPosts, 'dynamic' => true]);
       $posts = $this->getPermittedPosts($this->ALC->getPosts($query));
       $renderedPosts[] = $this->ALC->transformPosts($block, $posts);
 
