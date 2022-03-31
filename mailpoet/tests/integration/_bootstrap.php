@@ -1,8 +1,13 @@
 <?php
 
+use MailPoet\Automation\Engine\Engine;
+use MailPoet\Automation\Engine\Hooks;
+use MailPoet\Automation\Engine\Migrations\Migrator;
+use MailPoet\Automation\Integrations\MailPoet\MailPoetIntegration;
 use MailPoet\Cache\TransientCache;
 use MailPoet\DI\ContainerWrapper;
 use MailPoet\Entities\ScheduledTaskEntity;
+use MailPoet\Features\FeatureFlagsController;
 use MailPoet\Features\FeaturesController;
 use MailPoet\Settings\SettingsController;
 use MailPoetVendor\Doctrine\DBAL\Connection;
@@ -52,6 +57,8 @@ $entities = [
   MailPoet\Entities\SettingEntity::class,
 ];
 
+ContainerWrapper::getInstance()->get(\MailPoet\Features\FeatureFlagsController::class)->set(FeaturesController::AUTOMATION, true);
+
 $connection = ContainerWrapper::getInstance(WP_DEBUG)->get(Connection::class);
 $destroy = function($model) use ($connection) {
   $modelName = '\MailPoet\Models\\' . $model;
@@ -84,6 +91,20 @@ if (is_dir((string)getenv('WP_TEST_CACHE_PATH'))) {
 // This hook throws an 'Undefined index: SERVER_NAME' error in CLI mode,
 // the action is called in ConflictResolverTest
 remove_filter('admin_print_styles', 'wp_resource_hints', 1);
+
+// enable & initialize automation
+$container = ContainerWrapper::getInstance();
+$migrator = $container->get(Migrator::class);
+$container->get(FeatureFlagsController::class)->set(FeaturesController::AUTOMATION, true);
+if ($migrator->hasSchema()) {
+  $migrator->deleteSchema();
+}
+$migrator->createSchema();
+$action = [$container->get(MailPoetIntegration::class), 'register'];
+if (!has_action(Hooks::INITIALIZE, $action) && is_callable($action)) {
+  add_action(Hooks::INITIALIZE, $action);
+  $container->get(Engine::class)->initialize();
+}
 
 /**
  * @property IntegrationTester $tester
