@@ -2,6 +2,7 @@
 
 namespace MailPoet\EmailEditor\Integrations\MailPoet;
 
+use MailPoet\Analytics\Analytics;
 use MailPoet\API\JSON\API;
 use MailPoet\Config\Env;
 use MailPoet\Config\Installer;
@@ -37,6 +38,8 @@ class EditorPageRenderer {
 
   private NewslettersRepository $newslettersRepository;
 
+  private Analytics $analytics;
+
   public function __construct(
     WPFunctions $wp,
     Settings_Controller $settingsController,
@@ -47,7 +50,8 @@ class EditorPageRenderer {
     User_Theme $userTheme,
     DependencyNotice $dependencyNotice,
     MailPoetSettings $mailpoetSettings,
-    NewslettersRepository $newslettersRepository
+    NewslettersRepository $newslettersRepository,
+    Analytics $analytics
   ) {
     $this->wp = $wp;
     $this->settingsController = $settingsController;
@@ -59,6 +63,7 @@ class EditorPageRenderer {
     $this->dependencyNotice = $dependencyNotice;
     $this->mailpoetSettings = $mailpoetSettings;
     $this->newslettersRepository = $newslettersRepository;
+    $this->analytics = $analytics;
   }
 
   public function render() {
@@ -68,6 +73,11 @@ class EditorPageRenderer {
       return;
     }
     $this->dependencyNotice->checkDependenciesAndEventuallyShowNotice();
+
+    // load analytics (mixpanel) library
+    if ($this->analytics->isEnabled()) {
+      add_filter('admin_footer', [$this, 'loadAnalyticsModule'], 24);
+    }
 
     // load mailpoet email editor JS integrations
     $editorIntegrationAssetsParams = require Env::$assetsPath . '/dist/js/email_editor_integration/email_editor_integration.asset.php';
@@ -167,7 +177,7 @@ class EditorPageRenderer {
       'mailpoet_installed_days_ago' => (int)$installedAtDiff->format('%a'),
     ];
     $this->wp->wpAddInlineScript('mailpoet_email_editor', implode('', array_map(function ($key) use ($inline_script_data) {
-      return sprintf("var %s=%s;", $key, json_encode($inline_script_data[$key]));
+      return sprintf("var %s=%s;", $key, wp_json_encode($inline_script_data[$key]));
     }, array_keys($inline_script_data))), 'before');
 
     // Load CSS from Post Editor
@@ -215,5 +225,26 @@ class EditorPageRenderer {
         wp_json_encode($preloadData)
       )
     );
+  }
+
+  public function loadAnalyticsModule() {  // phpcs:ignore -- MissingReturnStatement not required
+    $publicId = $this->analytics->getPublicId();
+    $isPublicIdNew = $this->analytics->isPublicIdNew();
+    // this is required here because of `analytics-event.js` and order of script load and use in `mailpoet-email-editor-integration/index.ts`
+    $libs3rdPartyEnabled = $this->mailpoetSettings->get('3rd_party_libs.enabled') === '1';
+
+    // we need to set this values because they are used in the analytics.html file
+    ?>
+      <script type="text/javascript"> <?php // phpcs:ignore ?>
+        window.mailpoet_analytics_enabled = true;
+        window.mailpoet_analytics_public_id = '<?php echo esc_js($publicId); ?>';
+        window.mailpoet_analytics_new_public_id = <?php echo wp_json_encode($isPublicIdNew); ?>;
+        window.mailpoet_3rd_party_libs_enabled = <?php echo wp_json_encode($libs3rdPartyEnabled); ?>;
+        window.mailpoet_version = '<?php echo esc_js(MAILPOET_VERSION); ?>';
+        window.mailpoet_premium_version = '<?php echo esc_js((defined('MAILPOET_PREMIUM_VERSION')) ? MAILPOET_PREMIUM_VERSION : ''); ?>';
+      </script>
+    <?php
+
+    include_once Env::$viewsPath . '/analytics.html';
   }
 }
