@@ -228,6 +228,7 @@ Check our [Knowledge Base](https://kb.mailpoet.com) or contact us through our [s
 == Changelog ==
 
 = x.x.x - YYYY-MM-DD =
+* Improved: handling of MailPoet Page title when switching website languages;
 * Improved: add default re-engagement emails trigger value when "Inactive subscribers" feature is turned off;
 * Improved: when choosing an email type, show loading animation only on the selected one;
 * Changed: replaced DocsBot with WordPress.com chatbot when searching MailPoet Knowledge Base;
