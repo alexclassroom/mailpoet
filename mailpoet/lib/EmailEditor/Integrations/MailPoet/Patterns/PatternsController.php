@@ -4,6 +4,7 @@ namespace MailPoet\EmailEditor\Integrations\MailPoet\Patterns;
 
 use MailPoet\EmailEditor\Integrations\MailPoet\Patterns\Library\AbandonedCartPattern;
 use MailPoet\EmailEditor\Integrations\MailPoet\Patterns\Library\NewsletterPattern;
+use MailPoet\EmailEditor\Integrations\MailPoet\Patterns\Library\SaleAnnouncementPattern;
 use MailPoet\EmailEditor\Integrations\MailPoet\Patterns\Library\WelcomeEmailPattern;
 use MailPoet\Util\CdnAssetUrl;
 use MailPoet\WP\Functions as WPFunctions;
@@ -25,6 +26,7 @@ class PatternsController {
 
     $patterns = [];
     $patterns[] = new NewsletterPattern($this->cdnAssetUrl);
+    $patterns[] = new SaleAnnouncementPattern($this->cdnAssetUrl);
     $patterns[] = new WelcomeEmailPattern($this->cdnAssetUrl);
     $patterns[] = new AbandonedCartPattern($this->cdnAssetUrl);
 
